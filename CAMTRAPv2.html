@@ -3,118 +3,113 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>C3 Multi-Controller</title>
+  <title>C3 Multi-Wake</title>
   <style>
-    body { font-family: sans-serif; background: #0f172a; color: white; text-align: center; padding: 20px; }
-    .card { background: #1e293b; padding: 20px; border-radius: 16px; max-width: 400px; margin: auto; border: 1px solid #334155; }
-    .btn { display: block; width: 100%; padding: 18px; margin: 10px 0; border-radius: 12px; font-weight: bold; border: none; cursor: pointer; text-decoration: none; font-size: 1.1rem; transition: 0.2s; }
-    .btn-wake { background: #10b981; color: white; }
-    .btn-wake:active { transform: scale(0.98); background: #059669; }
-    .btn-pair { background: transparent; border: 2px dashed #475569; color: #94a3b8; margin-top: 20px; }
-    .btn-android { background: #3b82f6; color: white; font-size: 0.9rem; }
-    #log { margin-top: 20px; text-align: left; white-space: pre-line; border: 1px solid #334155; padding: 12px; background: #020617; height: 100px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #94a3b8; border-radius: 8px; }
-    .step-box { background: #fff3cd; color: #856404; padding: 15px; border-radius: 12px; border: 2px solid #ffc107; margin-bottom: 20px; text-align: left; }
-    .ssid-name { display: block; font-size: 22px; font-weight: bold; color: #d9534f; text-align: center; margin: 10px 0; border: 2px dashed #d9534f; padding: 5px; background: #fff; }
+    body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; text-align: center; }
+    #log { margin-top: 20px; text-align: left; white-space: pre-line; border: 1px solid #ccc; padding: 15px; background: #fff; height: 100px; overflow-y: auto; font-family: monospace; font-size: 12px; color: #666; }
+    .warning { color: #d9534f; font-weight: bold; background: #fff3f3; padding: 15px; border-radius: 8px; display: none; margin-bottom: 20px; border: 1px solid #d9534f; }
+    
+    /* Button Styles from your working code */
+    .btn-main { padding: 20px 30px; font-size: 18px; background-color: #28a745; color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2); width: 100%; margin-bottom: 10px; display: block;}
+    .btn-android { background-color: #007bff; text-decoration: none; display: block; padding: 15px; color: white; border-radius: 10px; font-weight: bold; margin: 15px 0; }
+    
+    #setup-guide { display: none; margin-top: 10px; text-align: left; }
+    .step-1-box { background-color: #fff3cd; border: 3px solid #ffc107; padding: 20px; border-radius: 15px; margin-bottom: 25px; }
+    .ssid-name { font-size: 24px; color: #d9534f; font-weight: bold; display: block; margin: 10px 0; border: 2px dashed #d9534f; padding: 10px; text-align: center; background: #fff; }
+    .esp-link { display: block; padding: 18px; background-color: #ffffff; color: #007bff; text-decoration: none; border: 2px solid #007bff; border-radius: 10px; font-weight: bold; text-align: center; font-size: 18px; }
   </style>
 </head>
 <body>
-
-  <div class="card">
-    <h2>C3 Controller <small style="color:#3b82f6">v3.8</small></h2>
-    
-    <div id="device-list">
-      </div>
-
-    <button class="btn btn-pair" onclick="pairNewBoard()">+ Pair New Board</button>
-
-    <div id="setup-guide" style="display:none;">
-      <div class="step-box">
-        <strong style="font-size: 1.1rem;">STEP 1: Connect Wi-Fi</strong>
-        <p>Switch your phone to this network:</p>
-        <span class="ssid-name">CamTrap-...</span>
-        
-        <a href="intent:#Intent;action=android.settings.WIFI_SETTINGS;end" class="btn btn-android">📶 Open Android Wi-Fi List</a>
-      </div>
-      <a href="http://192.168.4.1" class="btn" style="background:#6366f1; color:white;">STEP 2: Open Camera</a>
-      <button class="btn" style="background:#475569; color:white; font-size: 0.8rem;" onclick="location.reload()">↺ Back to Boards</button>
-    </div>
-
-    <div id="log">Checking for paired boards...</div>
+  <h1>C3 Multi-Controller</h1>
+  
+  <div id="browser-err" class="warning">
+    ⚠️ Browser Not Supported!<br>
+    Please open in <b>Chrome</b> (Android) or <b>Bluefy</b> (iOS).
+  </div>
+  
+  <div id="controls">
+    <div id="device-list"></div>
+    <button id="btnPair" class="btn-main" style="background-color: #6c757d;">+ PAIR NEW BOARD</button>
   </div>
 
+  <div id="setup-guide">
+    <div class="step-1-box">
+        <b>STEP 1: Connect Wi-Fi</b>
+        <span class="ssid-name">CamTrap-...</span>
+        
+        <a href="intent:#Intent;action=android.settings.WIFI_SETTINGS;end" class="btn-android">📶 OPEN WIFI SETTINGS</a>
+        
+        <p style="margin: 0; font-size: 14px; color: #856404;">⚠️ Switch to CamTrap network, then return here.</p>
+    </div>
+
+    <div class="step-2-box">
+        <a href="http://192.168.4.1" class="esp-link">STEP 2: OPEN CAMERA (192.168.4.1)</a>
+    </div>
+  </div>
+
+  <div id="log">Checking browser...</div>
+
   <script>
-    const S_UUID = "0000ffe0-0000-1000-8000-00805f9b34fb";
-    const C_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb";
+    const SERVICE_UUID        = '0000ffe0-0000-1000-8000-00805f9b34fb';
+    const CHARACTERISTIC_UUID = '0000ffe1-0000-1000-8000-00805f9b34fb';
+
     const logEl = document.getElementById('log');
+    const controls = document.getElementById('controls');
+    const setupGuide = document.getElementById('setup-guide');
+    const btnPair = document.getElementById('btnPair');
+    const deviceList = document.getElementById('device-list');
+    const browserErr = document.getElementById('browser-err');
 
     function log(msg) {
       logEl.textContent += `> ${msg}\n`;
       logEl.scrollTop = logEl.scrollHeight;
     }
 
-    // LOAD SAVED DEVICES FROM BROWSER PERMISSIONS
+    // LOAD REMEMBERED BOARDS
     window.onload = async () => {
-      if (navigator.bluetooth && navigator.bluetooth.getDevices) {
-        try {
-          const devices = await navigator.bluetooth.getDevices();
-          const list = document.getElementById('device-list');
-          
-          devices.forEach((device, index) => {
-            const b = document.createElement('button');
-            b.className = "btn btn-wake";
-            // Even if names are identical, we label them by order
-            b.innerText = `Wake Board #${index + 1} (${device.name})`;
-            b.onclick = () => wakeBoard(device);
-            list.appendChild(b);
-          });
-          
-          if(devices.length === 0) {
-            log("No boards paired yet. Click '+ Pair' to start.");
-          } else {
-            log(`Loaded ${devices.length} boards from memory.`);
-          }
-        } catch (e) {
-          log("⚠️ Permission error. Check Chrome Flags.");
-        }
-      } else {
+      if (!navigator.bluetooth) {
         log("❌ Web Bluetooth not supported.");
+        browserErr.style.display = 'block';
+      } else if (navigator.bluetooth.getDevices) {
+        const devices = await navigator.bluetooth.getDevices();
+        devices.forEach((device, index) => {
+          const b = document.createElement('button');
+          b.className = "btn-main";
+          b.innerText = `WAKE BOARD #${index + 1}`;
+          b.onclick = () => connectAndWake(device);
+          deviceList.appendChild(b);
+        });
+        log(`Ready. Loaded ${devices.length} boards.`);
       }
     };
 
-    async function pairNewBoard() {
+    // PAIR NEW BOARD LOGIC (Exactly like your original)
+    btnPair.addEventListener('click', async () => {
       try {
-        log("Opening selection list...");
+        log("Searching...");
         const device = await navigator.bluetooth.requestDevice({
-          filters: [{ name: 'C3_WAKE' }], // Looking for your exact standard name
-          optionalServices: [S_UUID]
+          filters: [{ name: 'C3_WAKE' }],
+          optionalServices: [SERVICE_UUID]
         });
-        log("Successfully paired " + device.name);
-        location.reload(); // Refresh to update the board list
-      } catch (e) {
-        log("Pairing cancelled.");
-      }
-    }
+        connectAndWake(device);
+      } catch (error) { log("❌ " + error); }
+    });
 
-    async function wakeBoard(device) {
+    async function connectAndWake(device) {
       try {
-        log("Connecting to specific board ID...");
+        log("Connecting to " + device.name + "...");
         const server = await device.gatt.connect();
-        const service = await server.getPrimaryService(S_UUID);
-        const char = await service.getCharacteristic(C_UUID);
-        
-        log("Sending Wake Signal (0x01)...");
-        await char.writeValue(new Uint8Array([0x01]));
-        
-        log("✅ Wake Delivered!");
-        
-        // Hide list and show the Wi-Fi/IP instructions
-        document.getElementById('device-list').style.display = 'none';
-        document.querySelector('.btn-pair').style.display = 'none';
-        document.getElementById('setup-guide').style.display = 'block';
-        
-      } catch (err) {
-        log("❌ Connection failed. Board may be out of range or off.");
-        console.error(err);
+        const service = await server.getPrimaryService(SERVICE_UUID);
+        const characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+
+        log("Sending 0x01...");
+        await characteristic.writeValue(new Uint8Array([0x01]));
+
+        log("✅ Wake Sent!");
+        controls.style.display = 'none';
+        setupGuide.style.display = 'block';
+      } catch (error) {
+        log("❌ ERROR: " + error);
       }
     }
   </script>
