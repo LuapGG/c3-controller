@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>C3 Wake Controller</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; text-align: center; }
+    #log { margin-top: 20px; text-align: left; white-space: pre-line; border: 1px solid #ccc; padding: 15px; background: #fff; height: 100px; overflow-y: auto; font-family: monospace; font-size: 12px; color: #666; }
+    
+    .warning { color: #d9534f; font-weight: bold; background: #fff3f3; padding: 15px; border-radius: 8px; display: none; margin-bottom: 20px; border: 1px solid #d9534f; }
+    
+    #btnWake { padding: 25px 50px; font-size: 22px; background-color: #28a745; color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+    #btnWake:disabled { background-color: #ccc; box-shadow: none; }
+
+    #setup-guide { display: none; margin-top: 10px; text-align: left; }
+    
+    .step-1-box { background-color: #fff3cd; border: 3px solid #ffc107; padding: 20px; border-radius: 15px; margin-bottom: 25px; }
+    .step-number { background: #856404; color: white; padding: 2px 8px; border-radius: 5px; font-weight: bold; margin-right: 5px; }
+    .ssid-name { font-size: 24px; color: #d9534f; font-weight: bold; display: block; margin: 10px 0; border: 2px dashed #d9534f; padding: 10px; text-align: center; background: #fff; }
+
+    .esp-link { display: block; padding: 18px; background-color: #ffffff; color: #007bff; text-decoration: none; border: 2px solid #007bff; border-radius: 10px; font-weight: bold; text-align: center; font-size: 18px; }
+  </style>
+</head>
+<body>
+  <h1>C3 Wake Controller</h1>
+  
+  <div id="browser-err" class="warning">
+    ⚠️ Browser Not Supported!<br>
+    Please open this page in <b>Google Chrome</b> (Android) or <b>Bluefy</b> (iOS).
+  </div>
+  
+  <div id="controls">
+    <button id="btnWake">WAKE BOARD</button>
+  </div>
+
+  <div id="setup-guide">
+    <div class="step-1-box">
+        <span class="step-number">STEP 1</span> <b>Connect Wi-Fi Now</b>
+        <p>Open your phone settings and connect to:</p>
+        <span class="ssid-name">CamTrap-...</span>
+        <p style="margin: 0; font-size: 14px; color: #856404;">⚠️ Connect to the Wi-Fi first, then return here.</p>
+    </div>
+
+    <div class="step-2-box">
+        <p><span class="step-number" style="background:#555">STEP 2</span> <b>After connecting:</b></p>
+        <a href="http://192.168.4.1" class="esp-link">Open Camera (192.168.4.1)</a>
+    </div>
+  </div>
+
+  <div id="log">Checking browser...</div>
+
+  <script>
+    const SERVICE_UUID        = '0000ffe0-0000-1000-8000-00805f9b34fb';
+    const CHARACTERISTIC_UUID = '0000ffe1-0000-1000-8000-00805f9b34fb';
+
+    const logEl = document.getElementById('log');
+    const controls = document.getElementById('controls');
+    const setupGuide = document.getElementById('setup-guide');
+    const btnWake = document.getElementById('btnWake');
+    const browserErr = document.getElementById('browser-err');
+
+    function log(msg) {
+      logEl.textContent += `> ${msg}\n`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    // Check compatibility on load
+    window.onload = () => {
+      if (!navigator.bluetooth) {
+        log("❌ Web Bluetooth is not supported here.");
+        btnWake.disabled = true;
+        browserErr.style.display = 'block';
+      } else {
+        log("✅ Ready to wake board.");
+      }
+    };
+
+    btnWake.addEventListener('click', async () => {
+      try {
+        log("Searching for C3_WAKE...");
+        const device = await navigator.bluetooth.requestDevice({
+          filters: [{ name: 'C3_WAKE' }],
+          optionalServices: [SERVICE_UUID]
+        });
+
+        log("Connecting...");
+        const server = await device.gatt.connect();
+        const service = await server.getPrimaryService(SERVICE_UUID);
+        const characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+
+        log("Sending 0x01...");
+        await characteristic.writeValue(new Uint8Array([0x01]));
+
+        log("✅ Wake Sent!");
+        controls.style.display = 'none';
+        setupGuide.style.display = 'block';
+
+      } catch (error) {
+        log("❌ ERROR: " + error);
+      }
+    });
+  </script>
+</body>
+</html>
